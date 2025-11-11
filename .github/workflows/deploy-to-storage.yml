@@ -14,19 +14,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Azure Login
-        uses: azure/login@v1
+      - name: Upload to Azure Blob Storage
+        uses: azure/CLI@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-      
-      - name: Upload to Azure Storage
-        run: |
-          az storage blob upload-batch \
-            --account-name foodsharestor2025 \
-            --source . \
-            --destination '$web' \
-            --overwrite \
-            --auth-mode login
+          azcliversion: 2.30.0
+          inlineScript: |
+            az storage blob upload-batch \
+              --account-name foodsharestor2025 \
+              --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
+              --destination '$web' \
+              --source . \
+              --overwrite
       
       - name: Deployment Complete
         run: |
