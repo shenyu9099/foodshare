@@ -21,10 +21,10 @@ jobs:
           inlineScript: |
             az storage blob upload-batch \
               --account-name foodsharestor2025 \
-              --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
-              --destination '$web' \
+              --account-key "${{ secrets.AZURE_STORAGE_KEY }}" \
               --source . \
-              --overwrite
+              --destination '$web' \
+              --overwrite true
       
       - name: Deployment Complete
         run: |
