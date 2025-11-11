@@ -1,0 +1,134 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_HTTP_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "method": "PUT",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "userId": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" },
+              "cuisine": { "type": "string" },
+              "tags": { "type": "array" }
+            },
+            "required": ["id", "userId", "title"]
+          }
+        }
+      }
+    },
+    "actions": {
+      "Get_current_document": {
+        "runAfter": {},
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['documentdb']['connectionId']"
+            }
+          },
+          "method": "get",
+          "path": "/v2/cosmosdb/@{encodeURIComponent('foodsharecosmos2025')}/dbs/@{encodeURIComponent('FoodDB')}/colls/@{encodeURIComponent('Dishes')}/docs/@{encodeURIComponent(triggerBody()?['id'])}",
+          "headers": {
+            "x-ms-documentdb-partitionkey": "@{triggerBody()?['userId']}"
+          }
+        }
+      },
+      "Replace_document": {
+        "runAfter": {
+          "Get_current_document": ["Succeeded"]
+        },
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['documentdb']['connectionId']"
+            }
+          },
+          "method": "put",
+          "body": {
+            "id": "@{body('Get_current_document')?['id']}",
+            "userId": "@{body('Get_current_document')?['userId']}",
+            "title": "@{triggerBody()?['title']}",
+            "description": "@{coalesce(triggerBody()?['description'], body('Get_current_document')?['description'])}",
+            "cuisine": "@{coalesce(triggerBody()?['cuisine'], body('Get_current_document')?['cuisine'])}",
+            "imageUrl": "@{body('Get_current_document')?['imageUrl']}",
+            "tags": "@{if(greater(length(triggerBody()?['tags']), 0), triggerBody()?['tags'], body('Get_current_document')?['tags'])}",
+            "likes": "@{coalesce(body('Get_current_document')?['likes'], 0)}",
+            "views": "@{coalesce(body('Get_current_document')?['views'], 0)}",
+            "createdAt": "@{body('Get_current_document')?['createdAt']}",
+            "updatedAt": "@{utcNow()}"
+          },
+          "path": "/v2/cosmosdb/@{encodeURIComponent('foodsharecosmos2025')}/dbs/@{encodeURIComponent('FoodDB')}/colls/@{encodeURIComponent('Dishes')}/docs/@{encodeURIComponent(triggerBody()?['id'])}",
+          "headers": {
+            "x-ms-documentdb-partitionkey": "@{triggerBody()?['userId']}"
+          }
+        }
+      },
+      "Response_Updated": {
+        "runAfter": {
+          "Replace_document": ["Succeeded"]
+        },
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 200,
+          "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "PUT, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+          },
+          "body": {
+            "success": true,
+            "message": "Dish updated successfully"
+          }
+        }
+      },
+      "Response_Error": {
+        "runAfter": {
+          "Replace_document": ["Failed", "Skipped", "TimedOut"]
+        },
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 500,
+          "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          },
+          "body": {
+            "success": false,
+            "error": "Failed to update dish"
+          }
+        }
+      }
+    },
+    "outputs": {},
+    "parameters": {
+      "$connections": {
+        "type": "Object",
+        "defaultValue": {}
+      }
+    }
+  },
+  "parameters": {
+    "$connections": {
+      "type": "Object",
+      "value": {
+        "documentdb": {
+          "id": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/providers/Microsoft.Web/locations/francecentral/managedApis/documentdb",
+          "connectionId": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/resourceGroups/foodshare-france-rg/providers/Microsoft.Web/connections/documentdb-1",
+          "connectionName": "documentdb-1"
+        }
+      }
+    }
+  }
+}
+

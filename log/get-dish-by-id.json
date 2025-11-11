@@ -1,0 +1,110 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_HTTP_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "method": "GET",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" }
+            },
+            "required": ["id"]
+          }
+        }
+      }
+    },
+    "actions": {
+      "List_All_Dishes_Action": {
+        "runAfter": {},
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['documentdb']['connectionId']"
+            }
+          },
+          "method": "get",
+          "path": "/v2/cosmosdb/@{encodeURIComponent('foodsharecosmos2025')}/dbs/@{encodeURIComponent('FoodDB')}/colls/@{encodeURIComponent('Dishes')}/docs"
+        }
+      },
+      "Filter_Dish_By_Id": {
+        "runAfter": {
+          "List_All_Dishes_Action": [
+            "Succeeded"
+          ]
+        },
+        "type": "Query",
+        "inputs": {
+          "from": "@body('List_All_Dishes_Action')?['Documents']",
+          "where": "@equals(item()?['id'], triggerOutputs()?['queries']?['id'])"
+        }
+      },
+      "Response_success": {
+        "runAfter": {
+          "Filter_Dish_By_Id": [
+            "Succeeded"
+          ]
+        },
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 200,
+          "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+          },
+          "body": "@{json(concat('{\"success\":true,\"dish\":', if(greater(length(body('Filter_Dish_By_Id')), 0), string(first(body('Filter_Dish_By_Id'))), 'null'), '}'))}"
+        }
+      },
+      "Response_not_found": {
+        "runAfter": {
+          "Filter_Dish_By_Id": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 404,
+          "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          },
+          "body": {
+            "success": false,
+            "error": "Dish not found"
+          }
+        }
+      }
+    },
+    "outputs": {},
+    "parameters": {
+      "$connections": {
+        "type": "Object",
+        "defaultValue": {}
+      }
+    }
+  },
+  "parameters": {
+    "$connections": {
+      "type": "Object",
+      "value": {
+        "documentdb": {
+          "id": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/providers/Microsoft.Web/locations/francecentral/managedApis/documentdb",
+          "connectionId": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/resourceGroups/foodshare-france-rg/providers/Microsoft.Web/connections/documentdb-1",
+          "connectionName": "documentdb-1"
+        }
+      }
+    }
+  }
+}
+

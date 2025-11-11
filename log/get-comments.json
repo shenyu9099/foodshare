@@ -1,0 +1,88 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_HTTP_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "method": "GET",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "dishId": { "type": "string" }
+            },
+            "required": ["dishId"]
+          }
+        }
+      }
+    },
+    "actions": {
+      "Get_All_Comments": {
+        "runAfter": {},
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['documentdb']['connectionId']"
+            }
+          },
+          "method": "get",
+          "path": "/v2/cosmosdb/@{encodeURIComponent('foodsharecosmos2025')}/dbs/@{encodeURIComponent('FoodDB')}/colls/@{encodeURIComponent('Comments')}/docs"
+        }
+      },
+      "Filter_Comments_By_DishId": {
+        "runAfter": {
+          "Get_All_Comments": [
+            "Succeeded"
+          ]
+        },
+        "type": "Query",
+        "inputs": {
+          "from": "@body('Get_All_Comments')?['Documents']",
+          "where": "@equals(item()?['dishId'], triggerOutputs()?['queries']?['dishId'])"
+        }
+      },
+      "Response_success": {
+        "runAfter": {
+          "Filter_Comments_By_DishId": [
+            "Succeeded"
+          ]
+        },
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 200,
+          "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+          },
+          "body": "@{json(concat('{\"success\":true,\"comments\":', string(body('Filter_Comments_By_DishId')), '}'))}"
+        }
+      }
+    },
+    "outputs": {},
+    "parameters": {
+      "$connections": {
+        "type": "Object",
+        "defaultValue": {}
+      }
+    }
+  },
+  "parameters": {
+    "$connections": {
+      "type": "Object",
+      "value": {
+        "documentdb": {
+          "id": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/providers/Microsoft.Web/locations/francecentral/managedApis/documentdb",
+          "connectionId": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/resourceGroups/foodshare-france-rg/providers/Microsoft.Web/connections/documentdb-1",
+          "connectionName": "documentdb-1"
+        }
+      }
+    }
+  }
+}
+

@@ -1,0 +1,132 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_HTTP_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "method": "POST",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "dishId": { "type": "string" },
+              "userId": { "type": "string" },
+              "userName": { "type": "string" },
+              "content": { "type": "string" }
+            },
+            "required": ["dishId", "userId", "content"]
+          }
+        }
+      }
+    },
+    "actions": {
+      "Initialize_commentId": {
+        "runAfter": {},
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "commentId",
+              "type": "string",
+              "value": "@{guid()}"
+            }
+          ]
+        }
+      },
+      "Create_Comment_Document": {
+        "runAfter": {
+          "Initialize_commentId": [
+            "Succeeded"
+          ]
+        },
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['documentdb']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": {
+            "id": "@{variables('commentId')}",
+            "dishId": "@{triggerBody()?['dishId']}",
+            "userId": "@{triggerBody()?['userId']}",
+            "userName": "@{triggerBody()?['userName']}",
+            "content": "@{triggerBody()?['content']}",
+            "createdAt": "@{utcNow()}"
+          },
+          "path": "/v2/cosmosdb/@{encodeURIComponent('foodsharecosmos2025')}/dbs/@{encodeURIComponent('FoodDB')}/colls/@{encodeURIComponent('Comments')}/docs",
+          "headers": {
+            "x-ms-documentdb-partitionkey": "@{concat('[\"', triggerBody()?['dishId'], '\"]')}"
+          }
+        }
+      },
+      "Response_success": {
+        "runAfter": {
+          "Create_Comment_Document": [
+            "Succeeded"
+          ]
+        },
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 200,
+          "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+          },
+          "body": {
+            "success": true,
+            "commentId": "@{variables('commentId')}"
+          }
+        }
+      },
+      "Response_error": {
+        "runAfter": {
+          "Create_Comment_Document": [
+            "Failed",
+            "Skipped",
+            "TimedOut"
+          ]
+        },
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 500,
+          "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          },
+          "body": {
+            "success": false,
+            "error": "Failed to create comment"
+          }
+        }
+      }
+    },
+    "outputs": {},
+    "parameters": {
+      "$connections": {
+        "type": "Object",
+        "defaultValue": {}
+      }
+    }
+  },
+  "parameters": {
+    "$connections": {
+      "type": "Object",
+      "value": {
+        "documentdb": {
+          "id": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/providers/Microsoft.Web/locations/francecentral/managedApis/documentdb",
+          "connectionId": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/resourceGroups/foodshare-france-rg/providers/Microsoft.Web/connections/documentdb-1",
+          "connectionName": "documentdb-1"
+        }
+      }
+    }
+  }
+}
+

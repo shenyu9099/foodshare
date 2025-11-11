@@ -1,0 +1,128 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "triggers": {
+            "When_an_HTTP_request_is_received": {
+                "type": "Request",
+                "kind": "Http",
+                "inputs": {
+                    "method": "POST",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "username": {
+                                "type": "string"
+                            },
+                            "password": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "username",
+                            "password"
+                        ]
+                    }
+                }
+            }
+        },
+        "actions": {
+            "Query_user": {
+                "runAfter": {},
+                "type": "ApiConnection",
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['sql']['connectionId']"
+                        }
+                    },
+                    "method": "get",
+                    "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('default'))},@{encodeURIComponent(encodeURIComponent('default'))}/tables/@{encodeURIComponent(encodeURIComponent('Users'))}/items",
+                    "queries": {
+                        "$filter": "username eq '@{triggerBody()?['username']}' and passwordHash eq '@{triggerBody()?['password']}'"
+                    }
+                }
+            },
+            "Condition_user_found": {
+                "runAfter": {
+                    "Query_user": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "If",
+                "expression": {
+                    "greater": [
+                        "@length(body('Query_user')?['value'])",
+                        0
+                    ]
+                },
+                "actions": {
+                    "Response_success": {
+                        "runAfter": {},
+                        "type": "Response",
+                        "kind": "Http",
+                        "inputs": {
+                            "statusCode": 200,
+                            "headers": {
+                                "Content-Type": "application/json",
+                                "Access-Control-Allow-Origin": "*",
+                                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                                "Access-Control-Allow-Headers": "Content-Type"
+                            },
+                            "body": {
+                                "success": true,
+                                "id": "@{body('Query_user')?['value']?[0]?['id']}",
+                                "username": "@{body('Query_user')?['value']?[0]?['username']}",
+                                "displayName": "@{body('Query_user')?['value']?[0]?['displayName']}",
+                                "email": "@{body('Query_user')?['value']?[0]?['email']}"
+                            }
+                        }
+                    }
+                },
+                "else": {
+                    "actions": {
+                        "Response_failed": {
+                            "runAfter": {},
+                            "type": "Response",
+                            "kind": "Http",
+                            "inputs": {
+                                "statusCode": 401,
+                                "headers": {
+                                    "Content-Type": "application/json",
+                                    "Access-Control-Allow-Origin": "*",
+                                    "Access-Control-Allow-Methods": "POST, OPTIONS",
+                                    "Access-Control-Allow-Headers": "Content-Type"
+                                },
+                                "body": {
+                                    "success": false,
+                                    "error": "Invalid username or password"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "type": "Object",
+                "defaultValue": {}
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "type": "Object",
+            "value": {
+                "sql": {
+                    "id": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/providers/Microsoft.Web/locations/francecentral/managedApis/sql",
+                    "connectionId": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/resourceGroups/foodshare-france-rg/providers/Microsoft.Web/connections/sql",
+                    "connectionName": "sql"
+                }
+            }
+        }
+    }
+}
+
+

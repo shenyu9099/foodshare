@@ -1,0 +1,167 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "When_an_HTTP_request_is_received": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "method": "POST",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "imageContent": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["userId", "title", "imageContent"]
+          }
+        }
+      }
+    },
+    "actions": {
+      "Initialize_dishId": {
+        "runAfter": {},
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "dishId",
+              "type": "string",
+              "value": "@{guid()}"
+            }
+          ]
+        }
+      },
+      "Upload_Image_to_Blob": {
+        "runAfter": {
+          "Initialize_dishId": [
+            "Succeeded"
+          ]
+        },
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azureblob']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": "@base64ToBinary(triggerBody()?['imageContent'])",
+          "headers": {
+            "ReadFileMetadataFromServer": true
+          },
+          "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
+          "queries": {
+            "folderPath": "/dish-images",
+            "name": "@{concat('dish-', variables('dishId'), '.jpg')}",
+            "queryParametersSingleEncoded": true
+          }
+        },
+        "runtimeConfiguration": {
+          "contentTransfer": {
+            "transferMode": "Chunked"
+          }
+        }
+      },
+      "Create_Dish_Document": {
+        "runAfter": {
+          "Upload_Image_to_Blob": [
+            "Succeeded"
+          ]
+        },
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['documentdb']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": {
+            "id": "@{variables('dishId')}",
+            "userId": "@{triggerBody()?['userId']}",
+            "title": "@{triggerBody()?['title']}",
+            "description": "@{triggerBody()?['description']}",
+            "cuisine": "@{triggerBody()?['cuisine']}",
+            "imageUrl": "@{body('Upload_Image_to_Blob')?['Path']}",
+            "tags": "@{triggerBody()?['tags']}",
+            "likes": 0,
+            "views": 0,
+            "createdAt": "@{utcNow()}"
+          },
+          "path": "/v2/cosmosdb/@{encodeURIComponent('foodsharecosmos2025')}/dbs/@{encodeURIComponent('FoodDB')}/colls/@{encodeURIComponent('Dishes')}/docs",
+          "headers": {
+            "x-ms-documentdb-partitionkey": "@{concat('[\"', triggerBody()?['userId'], '\"]')}"
+          }
+        }
+      },
+      "Response": {
+        "runAfter": {
+          "Create_Dish_Document": [
+            "Succeeded"
+          ]
+        },
+        "type": "Response",
+        "kind": "Http",
+        "inputs": {
+          "statusCode": 200,
+          "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type"
+          },
+          "body": {
+            "success": true,
+            "message": "Dish uploaded successfully",
+            "dishId": "@{variables('dishId')}",
+            "imageUrl": "@{body('Upload_Image_to_Blob')?['Path']}",
+            "createdAt": "@{body('Create_Dish_Document')?['createdAt']}"
+          }
+        }
+      }
+    },
+    "outputs": {},
+    "parameters": {
+      "$connections": {
+        "type": "Object",
+        "defaultValue": {}
+      }
+    }
+  },
+  "parameters": {
+    "$connections": {
+      "type": "Object",
+      "value": {
+        "azureblob": {
+          "id": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/providers/Microsoft.Web/locations/francecentral/managedApis/azureblob",
+          "connectionId": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/resourceGroups/foodshare-france-rg/providers/Microsoft.Web/connections/azureblob",
+          "connectionName": "azureblob"
+        },
+        "documentdb": {
+          "id": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/providers/Microsoft.Web/locations/francecentral/managedApis/documentdb",
+          "connectionId": "/subscriptions/0c42a942-a42c-4e1e-9234-f53c904f0756/resourceGroups/foodshare-france-rg/providers/Microsoft.Web/connections/documentdb-1",
+          "connectionName": "documentdb-1"
+        }
+      }
+    }
+  }
+}
+

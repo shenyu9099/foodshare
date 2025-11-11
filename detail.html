@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FoodShare - Dish Detail</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">FoodShare</div>
+    <div class="links">
+      <a href="gallery.html">Back to Gallery</a>
+      <a href="upload.html">Upload</a>
+      <span id="userDisplay" class="user-display hidden"></span>
+      <a href="login.html" id="loginLink">Login</a>
+      <button id="logoutBtn" class="btn btn-secondary hidden">Logout</button>
+    </div>
+  </nav>
+
+  <main class="container">
+    <article class="detail">
+      <img id="dishImage" alt="Dish image" class="detail-image">
+      <div class="detail-content">
+        <div class="detail-header">
+          <h1 id="dishTitle">Dish Title</h1>
+          <div id="dishActions" class="dish-actions hidden">
+            <button id="editBtn" class="btn btn-outline">Edit</button>
+            <button id="deleteBtn" class="btn btn-danger">Delete</button>
+          </div>
+        </div>
+        <p class="muted">
+          <span id="dishAuthor">Unknown</span> • 
+          <span id="dishDate">Unknown date</span>
+        </p>
+        <p id="dishDescription"></p>
+        <p class="muted"><strong>Cuisine:</strong> <span id="dishCuisine">N/A</span></p>
+        <p class="muted"><strong>Tags:</strong> <span id="dishTags">N/A</span></p>
+      </div>
+    </article>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal hidden">
+      <div class="modal-content">
+        <h2>Edit Dish</h2>
+        <form id="editForm">
+          <label>
+            <span>Image (Optional - leave empty to keep current image)</span>
+            <div class="file-upload-wrapper">
+              <input type="file" id="editImage" accept="image/*">
+              <label for="editImage" class="file-upload-label">
+                <span id="editFileLabel">Choose New Image</span>
+              </label>
+            </div>
+            <div id="editImagePreview" class="image-preview hidden">
+              <img id="editPreviewImg" alt="Preview">
+            </div>
+            <span class="form-tip">Select a new image to replace the current one</span>
+          </label>
+          <label>
+            <span>Title *</span>
+            <input type="text" id="editTitle" placeholder="Enter dish title" required>
+          </label>
+          <label>
+            <span>Description *</span>
+            <textarea id="editDescription" placeholder="Describe your dish" rows="4" required></textarea>
+          </label>
+          <label>
+            <span>Cuisine</span>
+            <input type="text" id="editCuisine" placeholder="e.g., Chinese, Italian">
+          </label>
+          <label>
+            <span>Tags</span>
+            <input type="text" id="editTags" placeholder="Separate with commas">
+          </label>
+          <div class="modal-actions">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <button type="button" id="cancelEdit" class="btn btn-secondary">Cancel</button>
+          </div>
+        </form>
+        <p id="editMsg" class="msg"></p>
+      </div>
+    </div>
+
+    <section class="comments">
+      <h2>Comments</h2>
+      <div id="commentsList" class="comments-list"></div>
+      <form id="commentForm" class="form-inline">
+        <input type="text" id="commentContent" placeholder="Write a comment..." required>
+        <button type="submit" class="btn btn-primary">Post</button>
+      </form>
+      <p id="commentMsg" class="msg"></p>
+    </section>
+  </main>
+
+  <script src="js/insights.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/detail.js"></script>
+</body>
+</html>
+
+

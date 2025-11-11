@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FoodShare - Upload</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="topnav">
+    <div class="brand">FoodShare</div>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="gallery.html">Gallery</a>
+      <span id="userDisplay" class="user-display hidden"></span>
+      <a href="login.html" id="loginLink">Login</a>
+      <button id="logoutBtn" class="btn btn-secondary hidden">Logout</button>
+    </div>
+  </nav>
+
+  <main class="container narrow">
+    <h1>Upload a Dish</h1>
+    <form id="uploadForm" class="form-card">
+      <label>
+        <span>Image *</span>
+        <div class="file-upload-wrapper">
+          <input type="file" id="imageInput" accept="image/*" required>
+          <label for="imageInput" class="file-upload-label">
+            <span id="fileLabel">Choose Image File</span>
+          </label>
+        </div>
+        <div id="imagePreview" class="image-preview hidden">
+          <img id="previewImg" alt="Preview">
+        </div>
+      </label>
+      <label>
+        <span>Title *</span>
+        <input type="text" id="title" placeholder="Enter dish name" required>
+      </label>
+      <label>
+        <span>Description</span>
+        <textarea id="description" rows="3" placeholder="Describe your dish"></textarea>
+      </label>
+      <label>
+        <span>Cuisine</span>
+        <input type="text" id="cuisine" placeholder="e.g. Chinese, Italian">
+      </label>
+      <label>
+        <span>Tags</span>
+        <input type="text" id="tags" placeholder="Separate with commas">
+      </label>
+      <button type="submit" class="btn btn-primary">Upload</button>
+      <p id="uploadMsg" class="msg"></p>
+    </form>
+  </main>
+
+  <script src="js/insights.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/upload.js"></script>
+</body>
+</html>
+
+
