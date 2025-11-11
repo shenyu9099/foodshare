@@ -24,9 +24,10 @@ jobs:
               --account-key "${{ secrets.AZURE_STORAGE_KEY }}" \
               --source . \
               --destination '$web' \
-              --overwrite true
+              --overwrite
       
       - name: Deployment Complete
         run: |
           echo "✅ Deployment completed successfully!"
           echo "🌐 Visit: https://foodsharestor2025.z28.web.core.windows.net/"
+
