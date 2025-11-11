@@ -19,15 +19,32 @@ jobs:
         with:
           azcliversion: 2.30.0
           inlineScript: |
+            # Upload HTML files
             az storage blob upload-batch \
               --account-name foodsharestor2025 \
               --account-key "${{ secrets.AZURE_STORAGE_KEY }}" \
               --source . \
               --destination '$web' \
+              --pattern "*.html" \
+              --overwrite
+            
+            # Upload CSS files
+            az storage blob upload-batch \
+              --account-name foodsharestor2025 \
+              --account-key "${{ secrets.AZURE_STORAGE_KEY }}" \
+              --source ./css \
+              --destination '$web/css' \
+              --overwrite
+            
+            # Upload JS files
+            az storage blob upload-batch \
+              --account-name foodsharestor2025 \
+              --account-key "${{ secrets.AZURE_STORAGE_KEY }}" \
+              --source ./js \
+              --destination '$web/js' \
               --overwrite
       
       - name: Deployment Complete
         run: |
           echo "✅ Deployment completed successfully!"
           echo "🌐 Visit: https://foodsharestor2025.z28.web.core.windows.net/"
-
